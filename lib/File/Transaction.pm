@@ -8,7 +8,7 @@ use File::Temp;
 use File::Copy qw(copy);
 use Path::Class qw(file);
 use File::HomeDir qw(my_home);
-use Time::HiRes;
+use Time::HiRes qw(sleep);
 use Try::Tiny;
 
 has files => (
@@ -132,7 +132,7 @@ sub _lock {
 
     my ( $time, $locked ) = ( 0, 0 );
 
-    while ($time < $self->timeout) {
+    while ($time < $self->timeout) {        
         try {            
             $self->file_rs->result_source->schema->txn_do(sub {
                 $self->file_rs->populate([
