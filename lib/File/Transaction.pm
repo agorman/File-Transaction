@@ -127,19 +127,13 @@ sub txn_do {
     return $rv;
 }
 
-sub DEMOLISH {
-    my ( $self ) = @_;
-    
-    $self->rollback if $self->_in_txn;
-}
-
 sub _lock {
     my ( $self ) = @_;
 
     my ( $time, $locked ) = ( 0, 0 );
 
     while ($time < $self->timeout) {
-        try {
+        try {            
             $self->file_rs->result_source->schema->txn_do(sub {
                 $self->file_rs->populate([
                     ['file'],

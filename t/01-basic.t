@@ -13,7 +13,7 @@ my $temp_dir = File::Temp->newdir;
 rcopy "$FindBin::Bin/etc", $temp_dir;
 
 my $txn = File::Transaction->new(
-    files => [
+    files   => [
         "$temp_dir/a",
         "$temp_dir/b",
     ],
@@ -57,5 +57,21 @@ lives_ok(sub {
 
 is read_file("$temp_dir/a"), 'modified_again'
     => 'txn_do (rollback) ok';
+
+
+my $txn2 = File::Transaction->new(
+    timeout => 1,
+    files   => [
+        "$temp_dir/a",
+        "$temp_dir/b",
+    ],
+);
+
+$txn->begin;
+
+dies_ok(sub {
+    $txn2->begin;
+}, 'timeout');
+
 
 done_testing();
