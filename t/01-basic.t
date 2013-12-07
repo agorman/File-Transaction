@@ -60,7 +60,8 @@ is read_file("$temp_dir/a"), 'modified_again'
 
 
 my $txn2 = File::Transaction->new(
-    timeout => 1,
+    timeout => .2,
+    wake_up => .1,
     files   => [
         "$temp_dir/a",
         "$temp_dir/b",
@@ -72,6 +73,5 @@ $txn->begin;
 dies_ok(sub {
     $txn2->begin;
 }, 'timeout');
-
 
 done_testing();

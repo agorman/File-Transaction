@@ -23,7 +23,7 @@ has files => (
 
 has timeout => (
     is      => 'ro',
-    isa     => Int,
+    isa     => Num,
     default => 10,
 );
 
@@ -66,6 +66,11 @@ sub BUILD {
     $db_file->parent->mkpath;
 }
 
+sub DEMOLISH {
+    my ( $self ) = @_;
+
+    $self->rollback if $self->_in_txn;
+}
 sub begin {
     my ( $self ) = @_;
     
@@ -135,10 +140,11 @@ sub _lock {
     while ($time < $self->timeout) {        
         try {            
             $self->file_rs->result_source->schema->txn_do(sub {
-                $self->file_rs->populate([
-                    ['file'],
-                    map { [$_] } @{$self->files},
-                ]);
+                foreach my $file ( $self->get_files ) {
+                    $self->file_rs->create({
+                        file => $file,
+                    });
+                }
             });
             
             $locked = 1;
@@ -201,6 +207,11 @@ __END__
         # if an exception is thrown inside this block all files are rolled back
     });
 
+=head1 EXPERIMENTAL
+
+This is very early days for this module. Use it at your own risk. I'll be using
+it in my own code and updating it as bugs and issues are discovered.
+
 =head1 DESCRIPTION
 
 When editing multiple files it can be desirable to roll them all back to the
@@ -210,6 +221,31 @@ make that possible.
 This class uses an SQLite database to store information about which files are
 locked. This is so different instances of this class or even different processes
 can lock the same files are ensure they respect each others transactions.
+
+Note: If this object goes out of scope within a transaction then the transaction
+is automatically rolled back.
+
+=head1 PITFALLS
+
+=head2 DEADLOCKS
+
+It's possible for deadlocks to occur with this module. If a transaction is
+started within another transaction in the same processes requesting a common
+file then a dead lock will occur. In this case an exception will be thrown after
+the given timeout.
+
+=head2 BAD DB STATE
+
+It's possible for the database to end up in a state where files that should no
+longer be locked are still considered locked. This can happen if the process
+dies before the object has a chance to end the transaction or go out of scope.
+I'm currently exploring options on how to fix this issue.
+
+=head2 SUB TRANSACTIONS
+
+Currently using a transaction within a transaction won't give the desired
+effect. For example If after the sub transaction is successful an exception is
+thrown then only the outer transaction is rolled back. 
 
 =head1 ATTRIBUTES
 
