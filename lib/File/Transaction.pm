@@ -64,6 +64,8 @@ sub BUILD {
     
     my $db_file = file $self->db_path;
     $db_file->parent->mkpath;
+    
+    $SIG{'INT'} = sub { die 'caught SIGINT' };
 }
 
 sub DEMOLISH {
